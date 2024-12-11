@@ -1,0 +1,101 @@
+Chú thích
+
+[ForeignKey("Sach")]
+[DataType(DataType.Date)]
+[Range(1, int.MaxValue)]
+[StringLength(50, MinimumLength = 5)]
+[StringLength(30)]
+[Range(0.01, double.MaxValue)]
+[Range(0, int.MaxValue)]
+[DataType(DataType.PhoneNumber)]
+[EmailAddress]
+
+
+DropDownListFor
+<div class="col-md-10">
+    @Html.DropDownListFor(model => model.TheLoai, new SelectList(
+ new[]{
+            new{Value = "Lập trình", Text = "Lập trình"},
+            new{Value = "Khoa học", Text = "Khoa học"},
+            new{Value = "Văn học", Text = "Văn học"}
+    }, "Value", "Text"))
+    @Html.ValidationMessageFor(model => model.TheLoai, "", new { @class = "text-danger" })
+</div>
+
+
+RadioButtonFor
+<div class="col-md-10">
+    <div>
+        @Html.RadioButtonFor(model => model.TheLoai, "Lập trình") Lập trình
+        @Html.RadioButtonFor(model => model.TheLoai, "Lập trình 1") Lập trình 1
+        @Html.RadioButtonFor(model => model.TheLoai, "Lập trình 2") Lập trình 2
+    </div>            
+    @Html.ValidationMessageFor(model => model.TheLoai, "", new { @class = "text-danger" })
+</div>
+
+
+<th>
+    @Html.Label("Thành tiền")
+</th>
+<td>
+    @(item.Sach.DonGia * item.SoLuong)
+</td>
+
+Tìm kiếm
+@{ Html.BeginForm();}
+    @Html.Label("Nhập tên:")
+    @Html.TextBox("Ten")
+    <input type="submit" value="Tìm kiếm"/>
+@{ Html.EndForm();}
+public ActionResult TimKiem(String Ten)
+{
+    var hoaDonBan_ = db.HoaDonBan_.Include(h => h.KhachHang).Include(h => h.Sach);
+    if (!String.IsNullOrWhiteSpace(Ten)) {
+        Ten = Ten.Trim().ToLower();
+        hoaDonBan_ = hoaDonBan_.Where( h => h.KhachHang.HoTen.Trim().ToLower().Contains(Ten));
+    }
+    return View(hoaDonBan_.ToList());
+}
+
+MaxLuong
+public ActionResult MaxSoluong()
+{
+    var maxsl = db.HoaDonBan_.Max(h => h.SoLuong);
+    var hoaDonBan_ = db.HoaDonBan_.Where(h => h.SoLuong == maxsl);
+    return View(hoaDonBan_.ToList());
+}
+
+Doanhthucao
+public ActionResult TinhDoanhThu()
+{
+    var hoaDonBan_ = db.HoaDonBan_.Include(h => h.KhachHang).Include(h => h.KhachHang.HoTen);
+    var doanhThu = hoaDonBan_
+        .GroupBy(h => h.MaSach)
+        .Select(k => new DoanhThu
+        {
+            MaSach = k.Key,
+            TenSach = k.FirstOrDefault().Sach.TenSach,
+            TheLoai = k.FirstOrDefault().Sach.TheLoai,
+            DonGia = k.FirstOrDefault().Sach.DonGia,
+            ThanhTien = (decimal)k.Sum(x => x.Sach.DonGia * x.SoLuong)
+        });
+    if (doanhThu != null)
+    {
+        var doanhThuMax = doanhThu.Max(x => x.ThanhTien);
+        doanhThu = doanhThu.Where(x => x.ThanhTien == doanhThuMax);
+    }
+    return View(doanhThu.ToList());
+}
+    public class DoanhThu
+    {
+        public int? MaSach { get; set; }
+
+        public string TenSach { get; set; }
+
+        public string TheLoai  { get; set; }
+
+        public Nullable<decimal> DonGia { get; set; }
+
+        public decimal ThanhTien { get; set; }
+        
+    }
